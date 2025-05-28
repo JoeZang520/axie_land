@@ -1,0 +1,31 @@
+将本地上传到库
+git add .
+git commit -am "J9"
+git push --force origin main
+git push origin main
+
+删除库里某一个文件
+git rm --cached copy
+git commit -am "Remove 'copy' from version control"
+
+
+
+将仓库覆盖本地
+git fetch origin
+git pull origin main
+
+
+
+
+创建虚拟环境
+python -m venv venv
+
+激活虚拟环境
+.\venv\Scripts\activate
+
+创建安装依赖
+pip freeze > requirements.txt
+
+安装安装依赖
+pip install -r requirements.txt
+
