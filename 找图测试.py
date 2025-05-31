@@ -167,20 +167,9 @@ def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40,
 
 
 
-def in_game():
-    return image('homeland', offset=(100, 0), gray_diff_threshold=12) is not None
+image('homeland', offset=(100, 0), gray_diff_threshold=12)
 
-land_path = r"E:\Axie Infinity - Homeland\Homeland.exe"
-def enter_game():
-    if not in_game():
-        print("当前不在游戏中。")
-        subprocess.Popen(land_path)
-        time.sleep(10)
-def close_game():
-    subprocess.run(["taskkill", "/f", "/im", "Homeland.exe"], shell=True)
-    time.sleep(10)
-
-enter_game()
+image('tree4_11')
 
 
 

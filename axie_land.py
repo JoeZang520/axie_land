@@ -61,18 +61,22 @@ def image(png, threshold=0.8, offset=(0, 0), click_times=1, region=None, color=T
     if click_times > 0:
         for _ in range(click_times):
             pyautogui.click(center_x, center_y)
-            time.sleep(0.5)
+            time.sleep(1)
         print(f"[ACTION] 点击 {png} {center_x, center_y}" )
 
     return (center_x, center_y)
 
 
 thresholds = {
-    "tree1": 0.85,
-    "tree2": 0.85,
+    "tree1": 0.8,
+    "tree2": 0.8,
     "tree3": 0.85,
-    "tree4": 0.85,
-    "stone":0.9
+    "tree4": 0.8,
+    "tree5": 0.95,
+    "tree6": 0.95,           
+    "stone1": 0.92,
+    "stone2": 0.92
+
 
 }
 def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40, min_y_distance=40, click_times=0, excluded_points=None):
@@ -100,23 +104,18 @@ def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40,
             if abs(cx - px) < min_dx and abs(cy - py) < min_dy:
                 return False
         for ex, ey in excluded_points:
-            if abs(cx - ex) < min_dx and abs(cy - ey) < min_dy:
+            if abs(cx - ex) < min_dx  and abs(cy - ey) < min_dy:
                 return False
         return True
 
     for picture in png_list:
         templates = []
-        i = 1
-        while True:
-            path = os.path.join('pic', f"{picture}_{i}.png")
-            if os.path.exists(path):
-                templates.append(path)
-                i += 1
-            else:
-                break
-
+        for file in os.listdir('pic'):  
+            if file.startswith(f"{picture}_") and file.endswith('.png'):
+                templates.append(os.path.join('pic', file))
+          
         if not templates:
-            print(f"[ERROR] 未找到任何多模板图片：{picture}_1.png, {picture}_2.png 等")
+            print(f"[ERROR] 未找到任何多模板图片：{picture}_*.png")
             results[picture] = []
             continue
 
@@ -134,6 +133,11 @@ def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40,
 
             result = cv2.matchTemplate(screen_gray, template, cv2.TM_CCOEFF_NORMED)
             loc = np.where(result >= threshold)
+            
+            # 添加调试信息
+            max_val = np.max(result)
+            # print(f"[DEBUG] 模板 {template_path} 的最大匹配度: {max_val:.3f}, 阈值: {threshold}")
+            
             w, h = template.shape[1], template.shape[0]
 
             for pt, score in zip(zip(*loc[::-1]), result[loc]):
@@ -142,7 +146,7 @@ def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40,
 
                 if is_far_enough(cx, cy, all_points, min_x_distance, min_y_distance):
                     all_points.append((cx, cy, score))
-                    # print(f"匹配点: ({cx}, {cy}), 匹配度: {score:.3f}, 图片: {template_path}")
+                    # print(f"[DEBUG] 找到匹配点: ({cx}, {cy}), 匹配度: {score:.3f}, 图片: {template_path}")
 
                     if first_valid_point is None:
                         first_valid_point = (cx, cy)
@@ -157,7 +161,10 @@ def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40,
         print(f"[INFO] 点击匹配点：({first_valid_template} {cx}, {cy})，匹配度：{first_valid_threshold:.3f}")
         for _ in range(click_times):
             pyautogui.click(cx, cy)
+            pyautogui.click(cx, cy+25)
             time.sleep(1)
+            pyautogui.press('space')
+
     return results
 
 def wait_for_load(image_names, check_interval: float = 1, threshold=0.8, click_times=1, timeout=45):
@@ -188,11 +195,14 @@ def enter_game():
         subprocess.Popen(land_path)
         wait_for_load(["join"])
         wait_for_load(["tab"])
+        wait_for_load(["join"], timeout=30)
         wait_for_load(["acoin"])
-    for _ in range(10):
+    for _ in range(5):
         pyautogui.scroll(30)
         time.sleep(1)
     pyautogui.press("A")
+    image('M')
+    image('x')
 
 
 def close_game():
@@ -202,7 +212,7 @@ def close_game():
 
 def cut_tree(n):
     clicked_points = []
-    tree_keys = ['tree1', 'tree2', 'tree3', 'tree4']
+    tree_keys = ['tree1', 'tree2', 'tree3', 'tree4', 'tree5', 'tree6']
 
     for _ in range(n):
         result = image_multi(
@@ -222,8 +232,6 @@ def cut_tree(n):
         if tree_points:
             cx, cy, _ = tree_points[0]
             clicked_points.append((cx, cy))
-            image('collect')
-            time.sleep(1)
         else:
             print("[MISS] 没有可砍的树了。")
             break
@@ -233,26 +241,48 @@ def cut_tree(n):
 
 def collect_stone(n):
     clicked_points = []
+    stone_keys = ['stone1', 'stone2']  # 如果以后有多种石头模板，可以在这里添加
 
     for _ in range(n):
         result = image_multi(
-            png_list='stone',
+            png_list=stone_keys,
             thresholds=thresholds,
             click_times=1,
             excluded_points=clicked_points
         )
 
-        tree_points = result.get('stone', [])
-        if tree_points:
-            cx, cy, _ = tree_points[0]
+        # 找第一个有匹配点的模板
+        stone_points = []
+        for key in stone_keys:
+            if result.get(key):
+                stone_points = result[key]
+                break
+
+        if stone_points:
+            cx, cy, _ = stone_points[0]
             clicked_points.append((cx, cy))
-            image('collect')
-            time.sleep(1)
         else:
             print("[MISS] 没有可采的石头了。")
             break
+
     print("[INFO] 一轮采石结束")
 
+
+def craft_food(food):
+    if image('cuddle_kitchen1', click_times=2):
+        time.sleep(2)
+        image('claim', color=False), time.sleep(1)
+        image('ok', color=False), time.sleep(1)
+        image(food)
+        image('craft', click_times=5, color=False)
+        pyautogui.press('Esc')
+        image('acoin', offset=(-100, 0))
+    else:
+        print("未找到cuddle_kitchen1")
+
+
+
+    pass
 
 def countdown(activity, seconds):
     for i in range(seconds, 0, -1):
@@ -262,16 +292,26 @@ def countdown(activity, seconds):
     print("\r倒计时结束！      ")
 
 
-
 while True:
     enter_game()
-    if image('exit'):
+    if image('exit', color=False, threshold=0.7):
         time.sleep(10)
         enter_game()
 
-    cut_tree(2)
-    collect_stone(1)
-    countdown("采集", 200)
+
+    
+    craft_food('baguette')
+    # 按下并保持Shift+Q
+    pyautogui.keyDown('shift')
+    pyautogui.keyDown('q')
+    
+    cut_tree(22)
+    collect_stone(3)
+    
+    # 释放Shift+Q
+    pyautogui.keyUp('q')
+    pyautogui.keyUp('shift')
+    countdown("采集", 1800)
 
 
 

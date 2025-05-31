@@ -5,8 +5,10 @@ git push --force origin main
 git push origin main
 
 删除库里某一个文件
-git rm --cached copy
-git commit -am "Remove 'copy' from version control"
+git rm -r --cached .idea venv __pycache__
+git commit -m "J9"
+git push origin main
+
 
 
 

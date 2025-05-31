@@ -1,4 +1,3 @@
-# Ignore virtual environment folder
 venv/
 .idea/
 __pycache__/
