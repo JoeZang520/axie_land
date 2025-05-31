@@ -3,8 +3,6 @@ import pyautogui
 import numpy as np
 import os
 import time
-import sys
-import subprocess
 
 
 def image(png, threshold=0.8, offset=(0, 0), click_times=1, region=None, color=True, gray_diff_threshold=15):
@@ -37,7 +35,7 @@ def image(png, threshold=0.8, offset=(0, 0), click_times=1, region=None, color=T
     _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
     if max_val < threshold:
-        # print(f"[MISS] 没有找到 {png}")
+        print(f"[MISS] 没有找到 {png}")
         return None
 
     match_area = screen_img[
@@ -57,7 +55,7 @@ def image(png, threshold=0.8, offset=(0, 0), click_times=1, region=None, color=T
 
     center_x = max_loc[0] + template.shape[1] // 2 + x1 + offset[0]
     center_y = max_loc[1] + template.shape[0] // 2 + y1 + offset[1]
-
+    print(f"[INFO] 找到 {png} {center_x, center_y}")
     if click_times > 0:
         for _ in range(click_times):
             pyautogui.click(center_x, center_y)
@@ -67,109 +65,10 @@ def image(png, threshold=0.8, offset=(0, 0), click_times=1, region=None, color=T
     return (center_x, center_y)
 
 
-thresholds = {
-    "tree1": 0.8,
-    "tree2": 0.8,
-    "tree3": 0.8,
-    "tree4": 0.8,
-    "stone":0.9
 
-}
-def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40, min_y_distance=40, click_times=0, excluded_points=None):
-    import pyautogui
-    import cv2
-    import numpy as np
-    import os
-
-    if isinstance(png_list, str):
-        png_list = [png_list]
-
-    if not thresholds:
-        raise ValueError("阈值字典 (thresholds) 必须提供")
-
-    region = region or (0, 0, *pyautogui.size())
-    x1, y1, x2, y2 = region
-
-    screenshot = pyautogui.screenshot(region=(x1, y1, x2 - x1, y2 - x1))
-    screen_gray = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2GRAY)
-
-    excluded_points = excluded_points or []
-    results = {}
-
-    first_valid_point = None
-    first_valid_template = None
-    first_valid_score = None
-
-    def is_far_enough(cx, cy, points, min_dx, min_dy):
-        for px, py, _ in points:
-            if abs(cx - px) < min_dx and abs(cy - py) < min_dy:
-                return False
-        for ex, ey in excluded_points:
-            if abs(cx - ex) < min_dx and abs(cy - ey) < min_dy:
-                return False
-        return True
-
-    for picture in png_list:
-        templates = []
-        i = 1
-        while True:
-            path = os.path.join('pic', f"{picture}_{i}.png")
-            if os.path.exists(path):
-                templates.append(path)
-                i += 1
-            else:
-                break
-
-        if not templates:
-            print(f"[ERROR] 未找到任何多模板图片：{picture}_1.png, {picture}_2.png 等")
-            results[picture] = []
-            continue
-
-        threshold = thresholds.get(picture)
-        if threshold is None:
-            print(f"[WARN] 图片 {picture} 没有设置阈值，跳过该角色")
-            continue
-
-        all_points = []
-        for template_path in templates:
-            template = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
-            if template is None:
-                print(f"[ERROR] 图片加载失败: {template_path}")
-                continue
-
-            result = cv2.matchTemplate(screen_gray, template, cv2.TM_CCOEFF_NORMED)
-            loc = np.where(result >= threshold)
-            w, h = template.shape[1], template.shape[0]
-
-            for pt, score in zip(zip(*loc[::-1]), result[loc]):
-                cx = pt[0] + w // 2 + x1
-                cy = pt[1] + h // 2 + y1
-
-                if is_far_enough(cx, cy, all_points, min_x_distance, min_y_distance):
-                    all_points.append((cx, cy, score))
-                    # print(f"匹配点: ({cx}, {cy}), 匹配度: {score:.3f}, 图片: {template_path}")
-
-                    if first_valid_point is None:
-                        first_valid_point = (cx, cy)
-                        first_valid_template = template_path
-                        first_valid_score = score
-
-        results[picture] = all_points
-
-    # 点击全局第一个通过筛选的点
-    if click_times > 0 and first_valid_point:
-        cx, cy = first_valid_point
-        print(f"[INFO] 点击匹配点：({first_valid_template} {cx}, {cy})，匹配度：{first_valid_score:.3f}")
-        for _ in range(click_times):
-            pyautogui.click(cx, cy)
-            time.sleep(1)
-    return results
+image('#1', click_times=1)
 
 
-
-image('homeland', offset=(100, 0), gray_diff_threshold=12)
-
-image('tree4_11')
 
 
 

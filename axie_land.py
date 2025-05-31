@@ -62,7 +62,7 @@ def image(png, threshold=0.8, offset=(0, 0), click_times=1, region=None, color=T
         for _ in range(click_times):
             pyautogui.click(center_x, center_y)
             time.sleep(1)
-        print(f"[ACTION] 点击 {png} {center_x, center_y}" )
+        print(f"[ACTION] 点击 {png} {center_x, center_y} {threshold}")
 
     return (center_x, center_y)
 
@@ -73,9 +73,13 @@ thresholds = {
     "tree3": 0.85,
     "tree4": 0.8,
     "tree5": 0.95,
-    "tree6": 0.95,           
-    "stone1": 0.92,
-    "stone2": 0.92
+    "tree6": 0.95,  
+    "tree7": 0.9,
+    "tree8": 0.9,
+    "tree9": 0.9,
+    "stone1": 0.9,
+    "stone2": 0.9,
+    "stone4": 0.9
 
 
 }
@@ -161,7 +165,8 @@ def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40,
         print(f"[INFO] 点击匹配点：({first_valid_template} {cx}, {cy})，匹配度：{first_valid_threshold:.3f}")
         for _ in range(click_times):
             pyautogui.click(cx, cy)
-            pyautogui.click(cx, cy+25)
+            pyautogui.click(cx, cy+25
+                            )
             time.sleep(1)
             pyautogui.press('space')
 
@@ -185,6 +190,17 @@ def wait_for_load(image_names, check_interval: float = 1, threshold=0.8, click_t
 
         time.sleep(check_interval)
 
+def drag(start_pos, end_pos, duration=1):
+    start_x, start_y = start_pos
+    end_x, end_y = end_pos
+    
+    # 移动到起始位置
+    pyautogui.moveTo(start_x, start_y)
+    pyautogui.mouseDown(button='left')
+    pyautogui.moveTo(end_x, end_y, duration=duration)
+    pyautogui.mouseUp(button='left')
+    time.sleep(1)
+
 def in_game():
     return image('homeland', offset=(100, 0), gray_diff_threshold=12) is not None
 
@@ -195,26 +211,32 @@ def enter_game():
         subprocess.Popen(land_path)
         wait_for_load(["join"])
         wait_for_load(["tab"])
-        wait_for_load(["join"], timeout=30)
+        # wait_for_load(["join"], timeout=30)
         wait_for_load(["acoin"])
-    for _ in range(5):
-        pyautogui.scroll(30)
-        time.sleep(1)
-    pyautogui.press("A")
-    image('M')
-    image('x')
-
+        image('M')
+        image('x')
+   
 
 def close_game():
     subprocess.run(["taskkill", "/f", "/im", "Homeland.exe"], shell=True)
     time.sleep(10)
 
 
-def cut_tree(n):
+def collect(tree_count, stone_count):
+    """
+    同时采集树和石头的函数
+    :param tree_count: 采集树的次数
+    :param stone_count: 采集石头的次数
+    """
+    # 按下并保持Shift+Q
+    pyautogui.keyDown('shift')
+    pyautogui.keyDown('q')
+    
+    # 采集树
     clicked_points = []
-    tree_keys = ['tree1', 'tree2', 'tree3', 'tree4', 'tree5', 'tree6']
-
-    for _ in range(n):
+    tree_keys = ['tree1', 'tree2', 'tree3', 'tree4', 'tree5', 'tree6', 'tree7', 'tree8', 'tree9']
+    
+    for _ in range(tree_count):
         result = image_multi(
             png_list=tree_keys,
             thresholds=thresholds,
@@ -222,7 +244,6 @@ def cut_tree(n):
             excluded_points=clicked_points
         )
 
-        # 找第一个有匹配点的模板（按 tree1 到 tree4 顺序）
         tree_points = []
         for key in tree_keys:
             if result.get(key):
@@ -235,15 +256,14 @@ def cut_tree(n):
         else:
             print("[MISS] 没有可砍的树了。")
             break
-
-    print("[INFO] 一轮砍树结束")
-
-
-def collect_stone(n):
-    clicked_points = []
-    stone_keys = ['stone1', 'stone2']  # 如果以后有多种石头模板，可以在这里添加
-
-    for _ in range(n):
+    
+    print("[INFO] 树木采集结束")
+    
+    # 采集石头
+    clicked_points = []  # 重置已点击的点
+    stone_keys = ['stone1', 'stone2', 'stone4']
+    
+    for _ in range(stone_count):
         result = image_multi(
             png_list=stone_keys,
             thresholds=thresholds,
@@ -251,7 +271,6 @@ def collect_stone(n):
             excluded_points=clicked_points
         )
 
-        # 找第一个有匹配点的模板
         stone_points = []
         for key in stone_keys:
             if result.get(key):
@@ -261,28 +280,50 @@ def collect_stone(n):
         if stone_points:
             cx, cy, _ = stone_points[0]
             clicked_points.append((cx, cy))
+            pyautogui.click(cx, cy+25)  # 石头需要额外点击
         else:
             print("[MISS] 没有可采的石头了。")
             break
+    
+    print("[INFO] 石头采集结束")
+    
+    # 释放按键
+    pyautogui.keyUp('q')
+    pyautogui.keyUp('shift')
 
-    print("[INFO] 一轮采石结束")
-
-
-def craft_food(food):
+def craft():
     if image('cuddle_kitchen1', click_times=2):
         time.sleep(2)
-        image('claim', color=False), time.sleep(1)
+        image('claim'), time.sleep(1)
         image('ok', color=False), time.sleep(1)
-        image(food)
+        image('baguette')
         image('craft', click_times=5, color=False)
         pyautogui.press('Esc')
         image('acoin', offset=(-100, 0))
+        time.sleep(3)
     else:
         print("未找到cuddle_kitchen1")
+    if image('cuddle_kitchen4', click_times=2):
+        time.sleep(2)
+        if image('#2', click_times=0):
+            image('left_arrow'), time.sleep(1)
+        image('claim'), time.sleep(1)
+        image('ok', color=False), time.sleep(1)
+        image('boiled_carrot')
+        image('craft', click_times=9, color=False)
 
+        image('right_arrow'), time.sleep(1)
+        image('claim'), time.sleep(1)
+        image('ok', color=False), time.sleep(1)
+        image('boiled_carrot')
+        image('craft', click_times=9, color=False)
 
+        pyautogui.press('Esc')
+        image('acoin', offset=(-100, 0))
+        time.sleep(3)
+    else:
+        print("未找到cuddle_kitchen4")
 
-    pass
 
 def countdown(activity, seconds):
     for i in range(seconds, 0, -1):
@@ -291,27 +332,42 @@ def countdown(activity, seconds):
         time.sleep(1)
     print("\r倒计时结束！      ")
 
+def switch_plot(plot):
+    image('plot')
+    if plot == '57_119':
+        image('acoin', offset=(-420, 280))  # 自己的地
+    image(plot)  
+    time.sleep(5)
+    if plot == '105_128':
+        image('acoin', offset=(-340, 280))  # 别人的地
+    image(plot)  
+    time.sleep(5)
+    for _ in range(5):
+        pyautogui.scroll(30)
+        time.sleep(1)
+    pyautogui.press("A")
+    pyautogui.hotkey('shift', 'b')
+    time.sleep(3)
+    
+
 
 while True:
     enter_game()
-    if image('exit', color=False, threshold=0.7):
-        time.sleep(10)
+    if image('exit', color=False):
+        time.sleep(60)
         enter_game()
+        
 
+    switch_plot('105_128')
+    craft()
+    collect(9, 3)  
 
+    switch_plot('57_119')
+    craft()
+    collect(25, 10)  
     
-    craft_food('baguette')
-    # 按下并保持Shift+Q
-    pyautogui.keyDown('shift')
-    pyautogui.keyDown('q')
-    
-    cut_tree(22)
-    collect_stone(3)
-    
-    # 释放Shift+Q
-    pyautogui.keyUp('q')
-    pyautogui.keyUp('shift')
-    countdown("采集", 1800)
+
+    countdown("收菜", 1800)
 
 
 
