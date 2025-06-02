@@ -66,7 +66,11 @@ def image(png, threshold=0.8, offset=(0, 0), click_times=1, region=None, color=T
 
 
 
-image('#1', click_times=1)
+# image('#1', click_times=1)
+while True:
+    pyautogui.click(847, 817)
+    pyautogui.press('esc')
+    time.sleep(3)
 
 
 
