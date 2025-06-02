@@ -146,7 +146,7 @@ def image_multi(png_list, thresholds=thresholds, region=None, min_x_distance=40,
 
                 if is_far_enough(cx, cy, all_points, min_x_distance, min_y_distance):
                     all_points.append((cx, cy, score))
-                    print(f"[DEBUG] 找到匹配点: ({cx}, {cy}), 匹配度: {score:.3f}, 图片: {template_path}")
+                    # print(f"[DEBUG] 找到匹配点: ({cx}, {cy}), 匹配度: {score:.3f}, 图片: {template_path}")
 
                     if first_valid_point is None:
                         first_valid_point = (cx, cy)
@@ -214,7 +214,6 @@ def in_game():
 def enter_game():
     image('homeland', offset=(100, 0), gray_diff_threshold=12)
     if image('join'):
-        loading(["tab"])
         loading(["acoin"])
     if image('1axie_mode', click_times=0):
         image('tab')
@@ -223,7 +222,6 @@ def enter_game():
         print("当前不在游戏中。")
         subprocess.Popen(r"E:\Axie Infinity - Homeland\Homeland.exe")
         loading(["join"])
-        loading(["tab"])
         loading(["acoin"])
         image('x')
         image('M')
@@ -316,6 +314,7 @@ def mine():
         print("[ERROR] 未找到home坐标")
         press('1')
         time.sleep(5)
+        return
         
     base_x, base_y = home_pos  
     # 定义矿的位置和自家的相对坐标列表，可以随时添加新的矿点
@@ -458,19 +457,24 @@ def switch_plot(plot):
     image('acoin', offset=(-410, 810))  # 左下角收菜的位置
     
 
-def discard(ore1, ore2):
+def discard(ore1, ore2=None):
     press('v'), time.sleep(3)
-    image('inventory', offset=(-50, 110))
-    image('inventory', offset=(615, 110))
+    image('inventory', offset=(-50, 110))  # 苹果
+    image('inventory', offset=(615, 110))  # Metalwork
     image('miners_mass')
+    image('down_arrow')
+    image('down_arrow', offset=(-180, 180))
     for _ in range(5):
         if image(ore1, threshold=0.95):
             image('discard'), time.sleep(1)
             press('enter'), time.sleep(3)
-    for _ in range(5):
-        if image(ore2, threshold=0.95):
-            image('discard'), time.sleep(1)
-            press('enter'), time.sleep(3)
+    if ore2 and ore2 != ore1:  # 避免重复处理同一个矿石
+        for _ in range(5):
+            if image(ore2, threshold=0.95):
+                image('discard')
+                time.sleep(1)
+                press('enter')
+                time.sleep(3)
     press('esc')
 
 
@@ -526,13 +530,14 @@ while True:
     enter_game()
 
     switch_plot('105_128')
-    discard('copper_ore', 'silver_ore')
+    discard('copper_ore')
     transfer()
     # craft_food()
     mine()
     collect(5, 1)
     
     switch_plot('57_119')
+    discard('copper_ore')
     # craft_food()
     craft_equip()
     mine()
