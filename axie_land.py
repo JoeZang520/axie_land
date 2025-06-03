@@ -204,7 +204,7 @@ def press(button):
     pyautogui.keyDown(button)
     pyautogui.keyUp(button)
     time.sleep(1)
-    print(f'按键 {button}')
+    # print(f'按键 {button}')
 
 
 def in_game():
@@ -213,7 +213,7 @@ def in_game():
 
 def enter_game():
     image('homeland', offset=(100, 0), gray_diff_threshold=12)
-    if image('join'):
+    if image('join', click_times=3):
         loading(["acoin"])
     if image('1axie_mode', click_times=0):
         image('tab')
@@ -318,15 +318,9 @@ def mine():
         
     base_x, base_y = home_pos  
     # 定义矿的位置和自家的相对坐标列表，可以随时添加新的矿点
-    relative_positions = [
-        (70, 45),
-        (-16, 85),
-        (45, -195),
-        (25, -70),
-        (120, -20),
-        (-115, 188),
-        (-163, 112),
-        (-250, 69)
+    relative_positions = [(70,45),(-16,85),(45,-195),(25,-70),(120,-20),(-115,188),(-163,112),(-250,69),(-654,124),
+                          (-531,-248),(475,-67),(563,-27),(650,68),(381,214),(-397,277),(-498,329),(-400,-68),
+                          (-350,-275),(-270,240),(417,-137),(300,260),(94,407),(-450,418)
     ]
     
     # 遍历每个点
@@ -335,18 +329,13 @@ def mine():
         target_x = base_x + dx
         target_y = base_y + dy
         pyautogui.moveTo(target_x, target_y)
-        time.sleep(1)  # 等待移动完成
-        
-        # 检查是否可以收集
-        if image('collect', click_times=0):
-            print(f"[INFO] ({target_x}, {target_y})发现可采的矿")
-            pyautogui.press('space')
-            pyautogui.press('space') # 等待收集动画
-        else:
-            print(f"[INFO] ({target_x}, {target_y})没有可采的矿")
+        time.sleep(1)
+        if not image('gem_ore', click_times=0):
+            press('space')
+            press('space')
+
 
     print("[INFO] 矿采集结束")
-    
     press('1')
     time.sleep(5)
 
@@ -371,13 +360,13 @@ def craft_food():
         image('claim'), time.sleep(1)
         image('ok', color=False), time.sleep(1)
         image('boiled_carrot')
-        image('craft', click_times=9, color=False)
+        image('craft', color=False)
 
         # image('right_arrow'), time.sleep(1)
         # image('claim'), time.sleep(1)
         # image('ok', color=False), time.sleep(1)
         # image('boiled_carrot')
-        # image('craft', click_times=9, color=False)
+        # image('craft', color=False)
 
         pyautogui.press('Esc')
         image('acoin', offset=(-100, 0))
@@ -387,44 +376,30 @@ def craft_food():
 
 
 def craft_equip():
-    # if image('hammer_hut1', click_times=2):
-    #     time.sleep(2)
-    #     image('claim'), time.sleep(1)
-    #     image('ok', color=False), time.sleep(1)
-    #     image('steel_hammer')
-    #     image('craft', click_times=5, color=False)
-    #     pyautogui.press('Esc')
-    #     image('acoin', offset=(-100, 0))
-    #     time.sleep(3)
-    # else:
-    #     print("未找到cuddle_kitchen1")
+    # 定义要制作的物品列表，每个元素是(物品名称, 制作次数)
+    items_to_craft = [
+        ('iron_sword', 2, 9),  # 9是gray_diff_threshold
+        ('steel_chain_mail', 2, None),
+        ('gold_emerald', 1, None),
+        ('silver', 1, None)
+    ]
 
     if image('hammer_hut4', click_times=2):
         time.sleep(2)
         if image('#2', click_times=0):
             image('left_arrow'), time.sleep(1)
-        image('iron_sword', gray_diff_threshold=9)
-        image('craft', click_times=9, color=False)
-
-        image('right_arrow'), time.sleep(1)
-        image('iron_sword')
-        image('craft', click_times=9, color=False)
-
-        image('right_arrow'), time.sleep(1)
-        image('steel_chain_mail')
-        image('craft', click_times=9, color=False)
-
-        image('right_arrow'), time.sleep(1)
-        image('steel_chain_mail')
-        image('craft', click_times=9, color=False)
-
-        image('right_arrow', click_times=1), time.sleep(1)
-        image('gold_emerald')
-        image('craft', click_times=9, color=False)
-
-        image('right_arrow', click_times=1), time.sleep(1)
-        image('silver')
-        image('craft', click_times=9, color=False)
+            
+        # 循环制作每个物品
+        for item_name, repeat_times, gray_threshold in items_to_craft:
+            for _ in range(repeat_times):
+                if gray_threshold:
+                    image(item_name, gray_diff_threshold=gray_threshold)
+                else:
+                    image(item_name)
+                image('craft')
+                time.sleep(3)
+                if repeat_times > 1:  # 如果需要制作多次，点击右箭头
+                    image('right_arrow'), time.sleep(1)
 
         press('Esc')
         image('acoin', offset=(-100, 0))
@@ -455,7 +430,7 @@ def switch_plot(plot):
         time.sleep(1)
     pyautogui.press("A"), time.sleep(3)
     image('acoin', offset=(-410, 810))  # 左下角收菜的位置
-    
+    time.sleep(3)
 
 def discard(ore1, ore2=None):
     press('v'), time.sleep(3)
@@ -485,8 +460,8 @@ def transfer():
 
     clicked_positions = []
     max_attempts = 15  # 最多尝试找图的次数
-    target_images = ['iron_transfer1', 'iron_transfer2', 'iron_transfer3',
-                     'gold_transfer1', 'gold_transfer2', 'gold_transfer3',
+    target_images = ['gold_transfer1', 'gold_transfer2', 'gold_transfer3',
+                     'iron_transfer1', 'iron_transfer2', 'iron_transfer3',
                      'platinum_transfer1', 'platinum_transfer2', 'platinum_transfer3']
 
     for _ in range(max_attempts):
@@ -528,24 +503,23 @@ def transfer():
 
 while True:
     enter_game()
-
     switch_plot('105_128')
     discard('copper_ore')
     transfer()
     # craft_food()
     mine()
-    collect(5, 1)
-    
+    collect(10, 1)
+
     switch_plot('57_119')
     discard('copper_ore')
-    # craft_food()
+    craft_food()
     craft_equip()
     mine()
     collect(5, 1)
-    
-    # close_game()
 
-    countdown("收菜", 1800)
+    close_game()
+
+    countdown("收菜", 5400)
 
 
 
